@@ -1,60 +1,51 @@
-import time
-import dxcam
+from pathlib import Path
+import cv2
 
 from core.detector import BallDetector
 
+
 def main():
 
-```
-print("=" * 60)
-print("YOLO TEST STARTED")
-print("=" * 60)
+    print("=" * 60)
+    print("YOLO TEST START")
+    print("=" * 60)
 
-detector = BallDetector()
+    image_path = Path("test_images/test.jpg")
 
-camera = dxcam.create(
-    output_idx=0,
-    output_color="BGR"
-)
+    if not image_path.exists():
+        raise FileNotFoundError(
+            f"Test image not found: {image_path}"
+        )
 
-camera.start(target_fps=30)
+    image = cv2.imread(str(image_path))
 
-frame_count = 0
-last_time = time.time()
+    if image is None:
+        raise RuntimeError("Failed to load image")
 
-while True:
+    print("IMAGE SHAPE:", image.shape)
 
-    frame = camera.get_latest_frame()
+    detector = BallDetector()
 
-    if frame is None:
-        continue
+    detections = detector.detect(image)
 
-    detections = detector.detect(frame)
+    print()
+    print("TOTAL DETECTIONS:", len(detections))
+    print()
 
-    frame_count += 1
+    for i, det in enumerate(detections, start=1):
 
-    if time.time() - last_time >= 1:
+        print(
+            f"[{i}] "
+            f"{det['class_name']} "
+            f"conf={det['confidence']:.2f} "
+            f"center={det['center']}"
+        )
 
-        print("\n" + "=" * 60)
-        print("FPS:", frame_count)
-        print("DETECTIONS:", len(detections))
+    print()
+    print("=" * 60)
+    print("YOLO TEST FINISHED")
+    print("=" * 60)
 
-        counts = {}
 
-        for det in detections:
-
-            cls = det["class_name"]
-
-            counts[cls] = counts.get(cls, 0) + 1
-
-        for cls, cnt in counts.items():
-            print(f"{cls}: {cnt}")
-
-        print("=" * 60)
-
-        frame_count = 0
-        last_time = time.time()
-```
-
-if **name** == "**main**":
-main()
+if __name__ == "__main__":
+    main()
