@@ -15,62 +15,56 @@ def run():
     print("🚀 STARTING OVERLAY SYSTEM...")
 
     # =========================
-    # 🖥️ QT APP
+    # QT APP
     # =========================
     app = QApplication(sys.argv)
 
     # =========================
-    # 🎯 OVERLAY
+    # OVERLAY
     # =========================
     overlay = OverlayWindow()
 
     # =========================
-    # 🎥 CAMERA INIT (STABLE)
+    # CAMERA
     # =========================
     try:
         camera = dxcam.create(output_idx=0, output_color="BGR")
         camera.start(target_fps=30)
     except Exception as e:
-        print("❌ DXCAM ERROR:", e)
+        print("DXCAM ERROR:", e)
         return
 
     # =========================
-    # 🧠 CORE SYSTEMS
+    # SYSTEMS
     # =========================
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
 
     frame_counter = 0
-    last_log_time = time.time()
+    last_time = time.time()
 
     # =========================
-    # 🔄 MAIN LOOP
+    # MAIN LOOP
     # =========================
     while True:
 
         frame = camera.get_latest_frame()
 
-        # =========================
-        # 🧪 FRAME CHECK
-        # =========================
         if frame is None:
-            print("FRAME: None ❌")
             app.processEvents()
             time.sleep(0.01)
             continue
 
-        # =========================
-        # 🧪 DEBUG FPS LOG
-        # =========================
+        # FPS DEBUG
         frame_counter += 1
-        if time.time() - last_log_time >= 1:
-            print("FRAME OK:", frame.shape, "| FPS:", frame_counter)
+        if time.time() - last_time >= 1:
+            print("FPS:", frame_counter, "| FRAME:", frame.shape)
             frame_counter = 0
-            last_log_time = time.time()
+            last_time = time.time()
 
         # =========================
-        # 🎯 YOLO DETECTION
+        # DETECTION SAFE
         # =========================
         try:
             detections = detector.detect(frame)
@@ -78,12 +72,6 @@ def run():
             print("DETECT ERROR:", e)
             detections = []
 
-        # 🧪 TEST DETECTIONS
-        # print("DETECTIONS:", len(detections))
-
-        # =========================
-        # 🎱 BALL MANAGER
-        # =========================
         manager.update(detections)
 
         cue = manager.get_cue_ball()
@@ -91,7 +79,7 @@ def run():
         pockets = manager.get_pockets()
 
         # =========================
-        # 🎯 AIM ENGINE
+        # AIM
         # =========================
         if cue and balls and pockets:
 
@@ -99,7 +87,7 @@ def run():
                 result = engine.solve(
                     cue_ball=cue,
                     target_ball=balls[0],
-                    pockets=pockets
+                    pockets=pockets,
                     table_bounds=(0, 0, frame.shape[1], frame.shape[0])
                 )
 
@@ -109,20 +97,14 @@ def run():
             except Exception as e:
                 print("ENGINE ERROR:", e)
 
-        # =========================
-        # 🖥️ UPDATE QT UI
-        # =========================
+        # QT UPDATE
         app.processEvents()
-
-        # small delay (stability)
         time.sleep(0.005)
 
 
 if __name__ == "__main__":
-
     try:
         run()
-
     except Exception as e:
         print("FATAL ERROR:", e)
         input("Press Enter to exit...")
