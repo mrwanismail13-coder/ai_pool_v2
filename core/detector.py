@@ -21,11 +21,18 @@ class BallDetector:
 
     def detect(self, frame):
 
-        results = self.model.predict(
-            source=frame,
-            conf=YOLO_CONFIDENCE,
-            verbose=False
-        )
+        if frame is None:
+            return []
+
+        try:
+            results = self.model.predict(
+                source=frame,
+                conf=YOLO_CONFIDENCE,
+                verbose=False
+            )
+        except Exception as e:
+            print("YOLO PREDICT ERROR:", e)
+            return []
 
         detections = []
 
