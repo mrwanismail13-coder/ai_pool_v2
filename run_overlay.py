@@ -14,18 +14,12 @@ def run():
 
     print("🚀 STARTING OVERLAY SYSTEM...")
 
-    # =========================
-    # QT APP
-    # =========================
     app = QApplication(sys.argv)
 
-    # =========================
-    # OVERLAY
-    # =========================
     overlay = OverlayWindow()
 
     # =========================
-    # CAMERA
+    # CAMERA SAFE INIT
     # =========================
     try:
         camera = dxcam.create(output_idx=0, output_color="BGR")
@@ -34,9 +28,6 @@ def run():
         print("DXCAM ERROR:", e)
         return
 
-    # =========================
-    # SYSTEMS
-    # =========================
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
@@ -44,9 +35,6 @@ def run():
     frame_counter = 0
     last_time = time.time()
 
-    # =========================
-    # MAIN LOOP
-    # =========================
     while True:
 
         frame = camera.get_latest_frame()
@@ -56,10 +44,12 @@ def run():
             time.sleep(0.01)
             continue
 
+        # =========================
         # FPS DEBUG
+        # =========================
         frame_counter += 1
         if time.time() - last_time >= 1:
-            print("FPS:", frame_counter, "| FRAME:", frame.shape)
+            print(f"FPS: {frame_counter} | FRAME: {frame.shape}")
             frame_counter = 0
             last_time = time.time()
 
@@ -79,7 +69,7 @@ def run():
         pockets = manager.get_pockets()
 
         # =========================
-        # AIM
+        # AIM ENGINE SAFE
         # =========================
         if cue and balls and pockets:
 
@@ -97,9 +87,8 @@ def run():
             except Exception as e:
                 print("ENGINE ERROR:", e)
 
-        # QT UPDATE
         app.processEvents()
-        time.sleep(0.005)
+        time.sleep(0.01)
 
 
 if __name__ == "__main__":
