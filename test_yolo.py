@@ -20,7 +20,7 @@ def run_test():
     # ❌ CHECK IMAGE
     # =========================
     if img is None:
-        print("❌ IMAGE NOT FOUND:", img_path)
+        print(" IMAGE NOT FOUND:", img_path)
         return
 
     h, w = img.shape[:2]
@@ -103,7 +103,7 @@ def run_test():
     output_path = "aim_result.jpg"
     cv2.imwrite(output_path, img)
 
-    print("✅ RESULT IMAGE SAVED:", output_path)
+    print("RESULT IMAGE SAVED:", output_path)
     print("\n==============================")
     print("AIM TEST FINISHED")
     print("==============================\n")
