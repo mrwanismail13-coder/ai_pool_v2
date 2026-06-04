@@ -1,36 +1,30 @@
 import sys
 import time
-from overlay.overlay_window import OverlayWindow
-
 from PyQt6.QtWidgets import QApplication
 
+from overlay.overlay_window import OverlayWindow
 
-def run_overlay():
+
+def run():
 
     app = QApplication(sys.argv)
     window = OverlayWindow()
 
-    # =========================
-    # FAKE TEST DATA (هنا هنربط AI بعدين)
-    # =========================
+    print("🚀 OVERLAY STARTED")
+
     while True:
 
+        # 🔥 TEST LINE (زي الفيديو)
         lines = [
-            (300, 400, 900, 200),  # cue → ghost
-            (900, 200, 1100, 100)  # ghost → pocket
+            (200, 600, 900, 200),  # cue → ghost
+            (900, 200, 1200, 100)  # ghost → pocket
         ]
 
-        points = [
-            (300, 400),
-            (900, 200),
-            (1100, 100)
-        ]
-
-        window.set_data(lines, points)
+        window.set_data(lines=lines)
 
         app.processEvents()
         time.sleep(0.016)
 
 
 if __name__ == "__main__":
-    run_overlay()
+    run()
