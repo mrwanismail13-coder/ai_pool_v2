@@ -14,30 +14,17 @@ def run():
 
     print("🚀 STARTING OVERLAY SYSTEM...")
 
-    # =========================
-    # INIT CAMERA
-    # =========================
+    app = QApplication(sys.argv)
+
+    overlay = OverlayWindow()
+
     camera = dxcam.create(output_idx=0)
     camera.start(target_fps=60)
 
-    # =========================
-    # AI MODULES
-    # =========================
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
 
-    # =========================
-    # OVERLAY UI
-    # =========================
-    app = QApplication(sys.argv)
-    overlay = OverlayWindow()
-
-    print("🎯 OVERLAY RUNNING...")
-
-    # =========================
-    # MAIN LOOP
-    # =========================
     while True:
 
         frame = camera.get_latest_frame()
@@ -45,9 +32,6 @@ def run():
         if frame is None:
             continue
 
-        # =========================
-        # DETECTION
-        # =========================
         detections = detector.detect(frame)
         manager.update(detections)
 
@@ -55,10 +39,7 @@ def run():
         balls = manager.get_object_balls()
         pockets = manager.get_pockets()
 
-        # =========================
-        # AIM SOLVER
-        # =========================
-        if cue and len(balls) > 0 and len(pockets) > 0:
+        if cue and balls and pockets:
 
             result = engine.solve(
                 cue_ball=cue,
@@ -69,8 +50,10 @@ def run():
             if result:
                 overlay.set_data(result)
 
-        # =========================
-        # UI REFRESH
-        # =========================
+        # 🔥 مهم جدًا: يمنع القفل
         app.processEvents()
         time.sleep(0.01)
+
+
+if __name__ == "__main__":
+    run()
