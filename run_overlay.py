@@ -7,8 +7,8 @@ from PyQt6.QtWidgets import QApplication
 from core.detector import BallDetector
 from core.ball_manager import BallManager
 from core.aim_engine import AimEngine
+from core.table_detector import TableDetector
 from overlay.overlay_window import OverlayWindow
-from core.table_filter import TableFilter
 
 
 def run():
@@ -25,10 +25,10 @@ def run():
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
-    table_filter = TableFilter()
+    table = TableDetector()
 
     frame_counter = 0
-    last_time = time.time()
+    last_log = time.time()
 
     while True:
 
@@ -40,22 +40,31 @@ def run():
             continue
 
         # =========================
-        # DETECTION
+        # INIT TABLE ON FIRST FRAME
+        # =========================
+        if table.table_box is None:
+            table.set_table(frame.shape)
+            print("TABLE SET:", table.table_box)
+
+        # FPS DEBUG
+        frame_counter += 1
+        if time.time() - last_log >= 1:
+            print("FPS:", frame_counter, "| FRAME:", frame.shape)
+            frame_counter = 0
+            last_log = time.time()
+
+        # =========================
+        # YOLO
         # =========================
         detections = detector.detect(frame)
 
         # =========================
-        # ESTIMATE TABLE FIRST
+        # FILTER STEP 🔥
         # =========================
-        table_filter.estimate_table(detections)
+        detections = table.filter_detections(detections)
 
         # =========================
-        # FILTER NOISE
-        # =========================
-        detections = table_filter.filter(detections)
-
-        # =========================
-        # UPDATE BALLS
+        # BALL MANAGER
         # =========================
         manager.update(detections)
 
@@ -71,23 +80,19 @@ def run():
             result = engine.solve(
                 cue_ball=cue,
                 target_ball=balls[0],
-                pockets=pockets
+                pockets=pockets,
+                table_bounds=table.table_box
             )
 
-            if result:
-                overlay.set_data(result)
+            overlay.set_data(result)
 
-        # =========================
-        # UI LOOP
-        # =========================
         app.processEvents()
-        time.sleep(0.01)
+        time.sleep(0.005)
 
 
 if __name__ == "__main__":
-
     try:
         run()
     except Exception as e:
         print("FATAL ERROR:", e)
-        input("Press Enter...")
+        input("Press Enter to exit...")
