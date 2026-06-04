@@ -5,28 +5,20 @@ import numpy as np
 class TableDetector:
 
     def __init__(self):
-        self.table_box = None  # (x1, y1, x2, y2)
+        self.last_table = None
 
-    # =========================
-    # AUTO DETECT TABLE
-    # =========================
     def detect_table(self, frame):
 
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        if frame is None:
+            return None
 
-        # 🎯 green table mask (8ball pool default)
-        lower_green = np.array([35, 40, 40])
-        upper_green = np.array([85, 255, 255])
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        mask = cv2.inRange(hsv, lower_green, upper_green)
+        edges = cv2.Canny(blur, 50, 150)
 
-        # clean noise
-        kernel = np.ones((7, 7), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-
-        # find contours
         contours, _ = cv2.findContours(
-            mask,
+            edges,
             cv2.RETR_EXTERNAL,
             cv2.CHAIN_APPROX_SIMPLE
         )
@@ -34,42 +26,23 @@ class TableDetector:
         if not contours:
             return None
 
-        # largest contour = table
+        # أكبر contour = الطاولة
         largest = max(contours, key=cv2.contourArea)
 
         x, y, w, h = cv2.boundingRect(largest)
 
-        self.table_box = (x, y, x + w, y + h)
+        # فلترة بسيطة (منع أخطاء صغيرة)
+        if w < 200 or h < 200:
+            return None
 
-        return self.table_box
+        self.last_table = (x, y, x + w, y + h)
+        return self.last_table
 
-    # =========================
-    # CHECK INSIDE TABLE
-    # =========================
-    def inside_table(self, point):
-
-        if self.table_box is None:
+    def is_inside(self, point, table):
+        if not table:
             return True
 
         x, y = point
-        x1, y1, x2, y2 = self.table_box
+        x1, y1, x2, y2 = table
 
         return x1 <= x <= x2 and y1 <= y <= y2
-
-    # =========================
-    # FILTER DETECTIONS
-    # =========================
-    def filter_detections(self, detections):
-
-        if self.table_box is None:
-            return detections
-
-        filtered = []
-
-        for det in detections:
-            cx, cy = det.get("center", (0, 0))
-
-            if self.inside_table((cx, cy)):
-                filtered.append(det)
-
-        return filtered
