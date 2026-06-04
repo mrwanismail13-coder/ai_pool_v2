@@ -4,13 +4,9 @@ class BallManager:
 
         self.object_balls = []
         self.cue_ball = None
-
         self.pockets = []
         self.cushions = []
 
-    # =========================
-    # UPDATE FROM YOLO
-    # =========================
     def update(self, detections):
 
         self.object_balls = []
@@ -20,58 +16,29 @@ class BallManager:
 
         for det in detections:
 
-            class_name = det.get("class_name")
+            name = det.get("class_name")
             center = det.get("center")
 
-            # =========================
-            # CUE BALL
-            # =========================
-            if class_name == "white_cue_ball":
-                self.cue_ball = det
+            if not center:
+                continue
 
-            # =========================
-            # OBJECT BALLS
-            # =========================
-            elif class_name == "object_ball":
-                self.object_balls.append(det)
+            if name == "white_cue_ball":
+                self.cue_ball = center
 
-            # =========================
-            # POCKETS
-            # =========================
-            elif class_name == "pocket":
-                self.pockets.append(det)
+            elif name == "object_ball":
+                self.object_balls.append(center)
 
-            # =========================
-            # CUSHIONS
-            # =========================
-            elif class_name == "cushion":
-                self.cushions.append(det)
+            elif name == "pocket":
+                self.pockets.append(center)
 
-    # =========================
-    # GET CUE BALL
-    # =========================
+            elif name == "cushion":
+                self.cushions.append(center)
+
     def get_cue_ball(self):
-        if self.cue_ball:
-            return self.cue_ball["center"]
-        return None
+        return self.cue_ball
 
-    # =========================
-    # GET OBJECT BALLS
-    # =========================
     def get_object_balls(self):
-        return [b["center"] for b in self.object_balls]
+        return self.object_balls
 
-    # =========================
-    # GET POCKETS
-    # =========================
     def get_pockets(self):
-        return [p["center"] for p in self.pockets]
-
-    # =========================
-    # STATS
-    # =========================
-    def get_ball_count(self):
-        return len(self.object_balls)
-
-    def get_pocket_count(self):
-        return len(self.pockets)
+        return self.pockets
