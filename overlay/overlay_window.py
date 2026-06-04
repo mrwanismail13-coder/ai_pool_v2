@@ -1,8 +1,5 @@
 import sys
-import cv2
-import numpy as np
-
-from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QPainter, QPen
 from PyQt6.QtCore import Qt, QTimer
 
@@ -13,7 +10,7 @@ class OverlayWindow(QWidget):
         super().__init__()
 
         # =========================
-        # WINDOW SETTINGS (TRANSPARENT OVERLAY)
+        # WINDOW FLAGS (IMPORTANT FOR OVERLAY)
         # =========================
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
@@ -21,16 +18,20 @@ class OverlayWindow(QWidget):
             Qt.WindowType.Tool
         )
 
+        # =========================
+        # TRANSPARENT BACKGROUND
+        # =========================
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
+        # Full screen overlay
         self.showFullScreen()
 
         # =========================
-        # DATA
+        # DRAW DATA
         # =========================
-        self.lines = []
-        self.points = []
+        self.lines = []     # [(x1,y1,x2,y2)]
+        self.points = []    # [(x,y)]
 
         # =========================
         # FPS TIMER
@@ -40,32 +41,34 @@ class OverlayWindow(QWidget):
         self.timer.start(16)  # ~60 FPS
 
     # =========================
-    # UPDATE DATA FROM AI
+    # UPDATE FROM ENGINE
     # =========================
     def set_data(self, lines=None, points=None):
-
         self.lines = lines or []
         self.points = points or []
 
     # =========================
-    # DRAW
+    # DRAW LOOP
     # =========================
     def paintEvent(self, event):
 
         painter = QPainter(self)
 
-        # 🔴 AIM LINES
-        pen = QPen(Qt.GlobalColor.red, 2)
-        painter.setPen(pen)
+        # =========================
+        # AIM LINES (RED / YELLOW STYLE LIKE VIDEO)
+        # =========================
+        pen_line = QPen(Qt.GlobalColor.red, 3)
+        painter.setPen(pen_line)
 
         for line in self.lines:
             x1, y1, x2, y2 = line
             painter.drawLine(x1, y1, x2, y2)
 
-        # 🟡 POINTS
-        pen = QPen(Qt.GlobalColor.yellow, 6)
-        painter.setPen(pen)
+        # =========================
+        # POINTS (WHITE / DEBUG NODES)
+        # =========================
+        pen_point = QPen(Qt.GlobalColor.yellow, 6)
+        painter.setPen(pen_point)
 
-        for p in self.points:
-            x, y = p
+        for x, y in self.points:
             painter.drawPoint(x, y)
