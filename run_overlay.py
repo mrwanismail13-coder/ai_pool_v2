@@ -8,50 +8,28 @@ from core.detector import BallDetector
 from core.ball_manager import BallManager
 from core.aim_engine import AimEngine
 from overlay.overlay_window import OverlayWindow
+from core.table_filter import TableFilter
 
-
-# =========================
-# 🔧 DEBUG TOGGLE
-# =========================
-DEBUG_DETECTIONS = True   # ← خليه True للتست
 
 def run():
 
     print("🚀 STARTING OVERLAY SYSTEM...")
 
-    # =========================
-    # QT APP
-    # =========================
     app = QApplication(sys.argv)
 
-    # =========================
-    # OVERLAY WINDOW
-    # =========================
     overlay = OverlayWindow()
 
-    # =========================
-    # CAMERA INIT (SAFE)
-    # =========================
-    try:
-        camera = dxcam.create(output_idx=0, output_color="BGR")
-        camera.start(target_fps=30)
-    except Exception as e:
-        print("❌ DXCAM ERROR:", e)
-        return
+    camera = dxcam.create(output_idx=0, output_color="BGR")
+    camera.start(target_fps=30)
 
-    # =========================
-    # CORE SYSTEMS
-    # =========================
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
+    table_filter = TableFilter()
 
     frame_counter = 0
     last_time = time.time()
 
-    # =========================
-    # MAIN LOOP
-    # =========================
     while True:
 
         frame = camera.get_latest_frame()
@@ -62,33 +40,22 @@ def run():
             continue
 
         # =========================
-        # FPS DEBUG
+        # DETECTION
         # =========================
-        frame_counter += 1
-        if time.time() - last_time >= 1:
-            print(f"FPS: {frame_counter} | FRAME: {frame.shape}")
-            frame_counter = 0
-            last_time = time.time()
+        detections = detector.detect(frame)
 
         # =========================
-        # YOLO DETECTION
+        # ESTIMATE TABLE FIRST
         # =========================
-        try:
-            detections = detector.detect(frame)
-        except Exception as e:
-            print("❌ DETECT ERROR:", e)
-            detections = []
+        table_filter.estimate_table(detections)
 
         # =========================
-        # 🔥 TEST MODE PRINT
+        # FILTER NOISE
         # =========================
-        if DEBUG_DETECTIONS:
-            print("DETECTIONS COUNT:", len(detections))
-            for d in detections[:3]:   # نعرض أول 3 فقط
-                print(" ->", d)
+        detections = table_filter.filter(detections)
 
         # =========================
-        # BALL MANAGER
+        # UPDATE BALLS
         # =========================
         manager.update(detections)
 
@@ -101,35 +68,26 @@ def run():
         # =========================
         if cue and balls and pockets:
 
-            try:
-                result = engine.solve(
-                    cue_ball=cue,
-                    target_ball=balls[0],
-                    pockets=pockets,
-                    table_bounds=(0, 0, frame.shape[1], frame.shape[0])
-                )
+            result = engine.solve(
+                cue_ball=cue,
+                target_ball=balls[0],
+                pockets=pockets
+            )
 
-                if result:
-                    overlay.set_data(result)
-
-            except Exception as e:
-                print("❌ ENGINE ERROR:", e)
+            if result:
+                overlay.set_data(result)
 
         # =========================
-        # QT UPDATE
+        # UI LOOP
         # =========================
         app.processEvents()
         time.sleep(0.01)
 
 
-# =========================
-# ENTRY POINT
-# =========================
 if __name__ == "__main__":
 
     try:
         run()
-
     except Exception as e:
         print("FATAL ERROR:", e)
-        input("Press Enter to exit...")
+        input("Press Enter...")
