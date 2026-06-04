@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 
 
@@ -7,25 +8,43 @@ class TableDetector:
         self.table_box = None  # (x1, y1, x2, y2)
 
     # =========================
-    # SET MANUAL TABLE BOUNDS
+    # AUTO DETECT TABLE
     # =========================
-    def set_table(self, frame_shape):
+    def detect_table(self, frame):
 
-        h, w = frame_shape[:2]
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        # افتراضي بسيط (ممكن نطوره بعدين)
-        margin_x = int(w * 0.10)
-        margin_y = int(h * 0.15)
+        # 🎯 green table mask (8ball pool default)
+        lower_green = np.array([35, 40, 40])
+        upper_green = np.array([85, 255, 255])
 
-        self.table_box = (
-            margin_x,
-            margin_y,
-            w - margin_x,
-            h - margin_y
+        mask = cv2.inRange(hsv, lower_green, upper_green)
+
+        # clean noise
+        kernel = np.ones((7, 7), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+        # find contours
+        contours, _ = cv2.findContours(
+            mask,
+            cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE
         )
 
+        if not contours:
+            return None
+
+        # largest contour = table
+        largest = max(contours, key=cv2.contourArea)
+
+        x, y, w, h = cv2.boundingRect(largest)
+
+        self.table_box = (x, y, x + w, y + h)
+
+        return self.table_box
+
     # =========================
-    # CHECK IF INSIDE TABLE
+    # CHECK INSIDE TABLE
     # =========================
     def inside_table(self, point):
 
