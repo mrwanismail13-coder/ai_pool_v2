@@ -1,6 +1,5 @@
 import sys
 import time
-import traceback
 import dxcam
 
 from PyQt6.QtWidgets import QApplication
@@ -19,37 +18,73 @@ def run():
 
     overlay = OverlayWindow()
 
-    camera = dxcam.create(output_idx=0)
-    camera.start(target_fps=30)
+    # =========================
+    # 🎥 CAMERA INIT (SAFE MODE)
+    # =========================
+    try:
+        camera = dxcam.create(output_idx=0, output_color="BGR")
+    except Exception as e:
+        print("DXCAM INIT ERROR:", e)
+        return
+
+    camera.start(target_fps=30)  # 🔥 تقليل الضغط (مهم جداً للاستقرار)
 
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
 
-    frame_count = 0
+    last_frame_time = time.time()
 
+    # =========================
+    # 🔄 MAIN LOOP
+    # =========================
     while True:
+
+        frame = camera.get_latest_frame()
+
+        # =========================
+        # 🧪 TEST 1: FRAME CHECK
+        # =========================
+        if frame is None:
+            print("FRAME: None ❌")
+            app.processEvents()
+            time.sleep(0.01)
+            continue
+        else:
+            # print فقط كل ثانية (علشان ما نغرقش الكونسول)
+            if time.time() - last_frame_time > 1:
+                print("FRAME OK:", frame.shape)
+                last_frame_time = time.time()
+
+        # =========================
+        # 🧠 YOLO DETECTION
+        # =========================
         try:
-
-            frame = camera.get_latest_frame()
-
-            if frame is None:
-                continue
-
             detections = detector.detect(frame)
-            manager.update(detections)
+        except Exception as e:
+            print("DETECT ERROR:", e)
+            detections = []
 
-            cue = manager.get_cue_ball()
-            balls = manager.get_object_balls()
-            pockets = manager.get_pockets()
+        # =========================
+        # 🎯 BALL MANAGER
+        # =========================
+        manager.update(detections)
 
-            # debug مهم جدًا
-            frame_count += 1
-            if frame_count % 60 == 0:
-                print("FRAME OK:", frame_count, "detections:", len(detections))
+        cue = manager.get_cue_ball()
+        balls = manager.get_object_balls()
+        pockets = manager.get_pockets()
 
-            if cue and balls and pockets:
+        # =========================
+        # 🧪 DEBUG PRINT
+        # =========================
+        # print("cue:", cue, "balls:", len(balls), "pockets:", len(pockets))
 
+        # =========================
+        # 🎯 AIM ENGINE
+        # =========================
+        if cue and balls and pockets:
+
+            try:
                 result = engine.solve(
                     cue_ball=cue,
                     target_ball=balls[0],
@@ -59,14 +94,20 @@ def run():
                 if result:
                     overlay.set_data(result)
 
-            app.processEvents()
-            time.sleep(0.01)
+            except Exception as e:
+                print("ENGINE ERROR:", e)
 
-        except Exception as e:
-            print("❌ ERROR LOOP:")
-            print(traceback.format_exc())
-            time.sleep(1)
+        # =========================
+        # 🖥️ UI UPDATE
+        # =========================
+        app.processEvents()
+        time.sleep(0.01)
 
 
 if __name__ == "__main__":
-    run()
+    try:
+        run()
+
+    except Exception as e:
+        print("FATAL ERROR:", e)
+        input("Press Enter to exit...")
