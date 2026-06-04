@@ -33,10 +33,13 @@ jobs:
       # BUILD EXE
       # =========================
       - name: Build EXE
+        shell: pwsh
         run: |
-          pyinstaller --noconfirm --clean --onefile ^
-          --add-data "models;models" ^
-          --name ai_pool ^
+          pyinstaller `
+          --noconfirm `
+          --clean `
+          --onefile `
+          --add-data "models;models" `
           main.py
 
       # =========================
