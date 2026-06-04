@@ -1,106 +1,71 @@
-from PyQt6 import QtWidgets, QtGui, QtCore
 import sys
+import cv2
+import numpy as np
+
+from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtGui import QPainter, QPen
+from PyQt6.QtCore import Qt, QTimer
 
 
-class OverlayWindow(QtWidgets.QWidget):
+class OverlayWindow(QWidget):
 
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("AI Overlay")
-
         # =========================
-        # WINDOW FLAGS (IMPORTANT)
+        # WINDOW SETTINGS (TRANSPARENT OVERLAY)
         # =========================
         self.setWindowFlags(
-            QtCore.Qt.WindowType.FramelessWindowHint |
-            QtCore.Qt.WindowType.WindowStaysOnTopHint |
-            QtCore.Qt.WindowType.Tool
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
         )
 
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-        # Full screen overlay
-        screen = QtWidgets.QApplication.primaryScreen().geometry()
-        self.setGeometry(screen)
+        self.showFullScreen()
 
-        self.result = None
-        self.pockets = []
+        # =========================
+        # DATA
+        # =========================
+        self.lines = []
+        self.points = []
 
-        self.show()
-
-    # =========================
-    # UPDATE DATA
-    # =========================
-    def update_data(self, result, pockets):
-        self.result = result
-        self.pockets = pockets
-        self.update()
+        # =========================
+        # FPS TIMER
+        # =========================
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update)
+        self.timer.start(16)  # ~60 FPS
 
     # =========================
-    # DRAW EVENT
+    # UPDATE DATA FROM AI
+    # =========================
+    def set_data(self, lines=None, points=None):
+
+        self.lines = lines or []
+        self.points = points or []
+
+    # =========================
+    # DRAW
     # =========================
     def paintEvent(self, event):
 
-        if self.result is None:
-            return
+        painter = QPainter(self)
 
-        painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-
-        # =========================
-        # COLORS
-        # =========================
-        cue_color = QtGui.QColor(255, 255, 255)
-        target_color = QtGui.QColor(0, 255, 255)
-        line_color = QtGui.QColor(255, 255, 0)
-        pocket_color = QtGui.QColor(255, 0, 0)
-
-        pen = QtGui.QPen()
-        pen.setWidth(3)
-
-        # =========================
-        # DRAW POCKETS
-        # =========================
-        pen.setColor(pocket_color)
+        # 🔴 AIM LINES
+        pen = QPen(Qt.GlobalColor.red, 2)
         painter.setPen(pen)
 
-        for p in self.pockets:
-            painter.drawEllipse(QtCore.QPoint(*map(int, p)), 10, 10)
+        for line in self.lines:
+            x1, y1, x2, y2 = line
+            painter.drawLine(x1, y1, x2, y2)
 
-        # =========================
-        # DRAW BALLS
-        # =========================
-        cue = self.result.get("cue_ball")
-        target = self.result.get("target_ball")
-        ghost = self.result.get("ghost_ball")
-        pocket = self.result.get("pocket")
+        # 🟡 POINTS
+        pen = QPen(Qt.GlobalColor.yellow, 6)
+        painter.setPen(pen)
 
-        # cue -> ghost line
-        if cue and ghost:
-            pen.setColor(line_color)
-            painter.setPen(pen)
-            painter.drawLine(
-                cue[0], cue[1],
-                int(ghost[0]), int(ghost[1])
-            )
-
-        # ghost -> pocket line
-        if ghost and pocket:
-            painter.drawLine(
-                int(ghost[0]), int(ghost[1]),
-                int(pocket[0]), int(pocket[1])
-            )
-
-        # cue ball
-        if cue:
-            pen.setColor(cue_color)
-            painter.setPen(pen)
-            painter.drawEllipse(QtCore.QPoint(*cue), 8, 8)
-
-        # target ball
-        if target:
-            pen.setColor(target_color)
-            painter.setPen(pen)
-            painter.drawEllipse(QtCore.QPoint(*target), 8, 8)
+        for p in self.points:
+            x, y = p
+            painter.drawPoint(x, y)
