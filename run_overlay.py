@@ -100,6 +100,7 @@ def run():
                     cue_ball=cue,
                     target_ball=balls[0],
                     pockets=pockets
+                    table_bounds=(0, 0, frame.shape[1], frame.shape[0])
                 )
 
                 if result:
