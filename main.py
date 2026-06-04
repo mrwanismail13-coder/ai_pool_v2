@@ -1,4 +1,4 @@
-from run_overlay import run_overlay
+from run_overlay import run
 
 if __name__ == "__main__":
-    run_overlay()
+    run()
