@@ -20,9 +20,11 @@ def main():
     image = cv2.imread(str(image_path))
 
     if image is None:
-        raise RuntimeError("Failed to load image")
+        raise RuntimeError(
+            f"Failed to load image: {image_path}"
+        )
 
-    print("IMAGE SHAPE:", image.shape)
+    print("IMAGE:", image.shape)
 
     detector = BallDetector()
 
@@ -32,16 +34,53 @@ def main():
     print("TOTAL DETECTIONS:", len(detections))
     print()
 
-    for i, det in enumerate(detections, start=1):
+    class_counter = {}
 
-        print(
-            f"[{i}] "
-            f"{det['class_name']} "
-            f"conf={det['confidence']:.2f} "
-            f"center={det['center']}"
+    for det in detections:
+
+        cls = det["class_name"]
+
+        class_counter[cls] = (
+            class_counter.get(cls, 0) + 1
         )
 
+        x1, y1, x2, y2 = det["bbox"]
+
+        cv2.rectangle(
+            image,
+            (x1, y1),
+            (x2, y2),
+            (0, 255, 0),
+            2
+        )
+
+        cv2.putText(
+            image,
+            cls,
+            (x1, y1 - 10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (0, 255, 0),
+            2
+        )
+
+    print("CLASS COUNTS")
+    print("-" * 30)
+
+    for cls, count in class_counter.items():
+        print(f"{cls}: {count}")
+
+    output_path = "result.jpg"
+
+    cv2.imwrite(
+        output_path,
+        image
+    )
+
     print()
+    print("RESULT IMAGE SAVED:", output_path)
+    print()
+
     print("=" * 60)
     print("YOLO TEST FINISHED")
     print("=" * 60)
