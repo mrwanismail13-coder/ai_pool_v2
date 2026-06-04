@@ -1,64 +1,35 @@
 import sys
-import cv2
-import dxcam
-from PyQt6 import QtWidgets
-
-from core.detector import BallDetector
-from core.ball_manager import BallManager
-from core.aim_engine import AimEngine
+import time
 from overlay.overlay_window import OverlayWindow
+
+from PyQt6.QtWidgets import QApplication
 
 
 def run_overlay():
 
-    app = QtWidgets.QApplication(sys.argv)
+    app = QApplication(sys.argv)
+    window = OverlayWindow()
 
     # =========================
-    # INIT SYSTEM
-    # =========================
-    camera = dxcam.create()
-    camera.start(target_fps=60)
-
-    detector = BallDetector()
-    manager = BallManager()
-    engine = AimEngine()
-
-    overlay = OverlayWindow()
-
-    print("🚀 OVERLAY MODE STARTED")
-
-    # =========================
-    # MAIN LOOP
+    # FAKE TEST DATA (هنا هنربط AI بعدين)
     # =========================
     while True:
 
-        frame = camera.get_latest_frame()
+        lines = [
+            (300, 400, 900, 200),  # cue → ghost
+            (900, 200, 1100, 100)  # ghost → pocket
+        ]
 
-        if frame is None:
-            continue
+        points = [
+            (300, 400),
+            (900, 200),
+            (1100, 100)
+        ]
 
-        detections = detector.detect(frame)
-        manager.update(detections)
-
-        cue = manager.get_cue_ball()
-        objects = manager.get_object_balls()
-        pockets = manager.get_pockets()
-
-        if cue and len(objects) > 0:
-
-            target = objects[0]
-
-            result = engine.solve(
-                cue_ball=cue["center"],
-                target_ball=target["center"],
-                pockets=[p["center"] for p in pockets],
-                other_balls=[b["center"] for b in objects[1:]]
-            )
-
-            if result:
-                overlay.update_data(result, [p["center"] for p in pockets])
+        window.set_data(lines, points)
 
         app.processEvents()
+        time.sleep(0.016)
 
 
 if __name__ == "__main__":
