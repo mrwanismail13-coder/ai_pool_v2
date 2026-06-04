@@ -4,7 +4,7 @@ from core.aim_engine import AimEngine
 def run_test():
 
     print("\n==============================")
-    print("🎯 AIM ENGINE TEST START")
+    print("AIM ENGINE TEST START")
     print("==============================\n")
 
     engine = AimEngine()
@@ -42,7 +42,7 @@ def run_test():
         return
 
     print("\n==============================")
-    print("✅ RESULT")
+    print("RESULT")
     print("==============================")
 
     print("Cue Ball:", result["cue_ball"])
@@ -51,7 +51,7 @@ def run_test():
     print("Pocket:", result["pocket"])
 
     print("\n==============================")
-    print("🎯 AIM TEST FINISHED")
+    print("AIM TEST FINISHED")
     print("==============================\n")
 
 
