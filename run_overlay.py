@@ -10,24 +10,38 @@ from core.aim_engine import AimEngine
 from overlay.overlay_window import OverlayWindow
 
 
+# =========================
+# 🔧 DEBUG TOGGLE
+# =========================
+DEBUG_DETECTIONS = True   # ← خليه True للتست
+
 def run():
 
     print("🚀 STARTING OVERLAY SYSTEM...")
 
+    # =========================
+    # QT APP
+    # =========================
     app = QApplication(sys.argv)
 
+    # =========================
+    # OVERLAY WINDOW
+    # =========================
     overlay = OverlayWindow()
 
     # =========================
-    # CAMERA SAFE INIT
+    # CAMERA INIT (SAFE)
     # =========================
     try:
         camera = dxcam.create(output_idx=0, output_color="BGR")
         camera.start(target_fps=30)
     except Exception as e:
-        print("DXCAM ERROR:", e)
+        print("❌ DXCAM ERROR:", e)
         return
 
+    # =========================
+    # CORE SYSTEMS
+    # =========================
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
@@ -35,6 +49,9 @@ def run():
     frame_counter = 0
     last_time = time.time()
 
+    # =========================
+    # MAIN LOOP
+    # =========================
     while True:
 
         frame = camera.get_latest_frame()
@@ -54,14 +71,25 @@ def run():
             last_time = time.time()
 
         # =========================
-        # DETECTION SAFE
+        # YOLO DETECTION
         # =========================
         try:
             detections = detector.detect(frame)
         except Exception as e:
-            print("DETECT ERROR:", e)
+            print("❌ DETECT ERROR:", e)
             detections = []
 
+        # =========================
+        # 🔥 TEST MODE PRINT
+        # =========================
+        if DEBUG_DETECTIONS:
+            print("DETECTIONS COUNT:", len(detections))
+            for d in detections[:3]:   # نعرض أول 3 فقط
+                print(" ->", d)
+
+        # =========================
+        # BALL MANAGER
+        # =========================
         manager.update(detections)
 
         cue = manager.get_cue_ball()
@@ -69,7 +97,7 @@ def run():
         pockets = manager.get_pockets()
 
         # =========================
-        # AIM ENGINE SAFE
+        # AIM ENGINE
         # =========================
         if cue and balls and pockets:
 
@@ -85,15 +113,23 @@ def run():
                     overlay.set_data(result)
 
             except Exception as e:
-                print("ENGINE ERROR:", e)
+                print("❌ ENGINE ERROR:", e)
 
+        # =========================
+        # QT UPDATE
+        # =========================
         app.processEvents()
         time.sleep(0.01)
 
 
+# =========================
+# ENTRY POINT
+# =========================
 if __name__ == "__main__":
+
     try:
         run()
+
     except Exception as e:
         print("FATAL ERROR:", e)
         input("Press Enter to exit...")
