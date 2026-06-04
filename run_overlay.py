@@ -1,5 +1,6 @@
 import sys
 import time
+import traceback
 import dxcam
 
 from PyQt6.QtWidgets import QApplication
@@ -19,40 +20,52 @@ def run():
     overlay = OverlayWindow()
 
     camera = dxcam.create(output_idx=0)
-    camera.start(target_fps=60)
+    camera.start(target_fps=30)
 
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
 
+    frame_count = 0
+
     while True:
+        try:
 
-        frame = camera.get_latest_frame()
+            frame = camera.get_latest_frame()
 
-        if frame is None:
-            continue
+            if frame is None:
+                continue
 
-        detections = detector.detect(frame)
-        manager.update(detections)
+            detections = detector.detect(frame)
+            manager.update(detections)
 
-        cue = manager.get_cue_ball()
-        balls = manager.get_object_balls()
-        pockets = manager.get_pockets()
+            cue = manager.get_cue_ball()
+            balls = manager.get_object_balls()
+            pockets = manager.get_pockets()
 
-        if cue and balls and pockets:
+            # debug مهم جدًا
+            frame_count += 1
+            if frame_count % 60 == 0:
+                print("FRAME OK:", frame_count, "detections:", len(detections))
 
-            result = engine.solve(
-                cue_ball=cue,
-                target_ball=balls[0],
-                pockets=pockets
-            )
+            if cue and balls and pockets:
 
-            if result:
-                overlay.set_data(result)
+                result = engine.solve(
+                    cue_ball=cue,
+                    target_ball=balls[0],
+                    pockets=pockets
+                )
 
-        # 🔥 مهم جدًا: يمنع القفل
-        app.processEvents()
-        time.sleep(0.01)
+                if result:
+                    overlay.set_data(result)
+
+            app.processEvents()
+            time.sleep(0.01)
+
+        except Exception as e:
+            print("❌ ERROR LOOP:")
+            print(traceback.format_exc())
+            time.sleep(1)
 
 
 if __name__ == "__main__":
