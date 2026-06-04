@@ -44,3 +44,9 @@ jobs:
       - name: Run Aim Engine Test
         run: |
           python test_aim_engine.py
+
+      - name: Upload test output image
+        uses: actions/upload-artifact@v4
+        with:
+          name: aim-test-result
+          path: aim_result.jpg
