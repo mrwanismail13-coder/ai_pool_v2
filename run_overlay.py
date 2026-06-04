@@ -14,26 +14,35 @@ def run():
 
     print("🚀 STARTING OVERLAY SYSTEM...")
 
+    # =========================
+    # 🖥️ QT APP
+    # =========================
     app = QApplication(sys.argv)
 
+    # =========================
+    # 🎯 OVERLAY
+    # =========================
     overlay = OverlayWindow()
 
     # =========================
-    # 🎥 CAMERA INIT (SAFE MODE)
+    # 🎥 CAMERA INIT (STABLE)
     # =========================
     try:
         camera = dxcam.create(output_idx=0, output_color="BGR")
+        camera.start(target_fps=30)
     except Exception as e:
-        print("DXCAM INIT ERROR:", e)
+        print("❌ DXCAM ERROR:", e)
         return
 
-    camera.start(target_fps=30)  # 🔥 تقليل الضغط (مهم جداً للاستقرار)
-
+    # =========================
+    # 🧠 CORE SYSTEMS
+    # =========================
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
 
-    last_frame_time = time.time()
+    frame_counter = 0
+    last_log_time = time.time()
 
     # =========================
     # 🔄 MAIN LOOP
@@ -43,21 +52,25 @@ def run():
         frame = camera.get_latest_frame()
 
         # =========================
-        # 🧪 TEST 1: FRAME CHECK
+        # 🧪 FRAME CHECK
         # =========================
         if frame is None:
             print("FRAME: None ❌")
             app.processEvents()
             time.sleep(0.01)
             continue
-        else:
-            # print فقط كل ثانية (علشان ما نغرقش الكونسول)
-            if time.time() - last_frame_time > 1:
-                print("FRAME OK:", frame.shape)
-                last_frame_time = time.time()
 
         # =========================
-        # 🧠 YOLO DETECTION
+        # 🧪 DEBUG FPS LOG
+        # =========================
+        frame_counter += 1
+        if time.time() - last_log_time >= 1:
+            print("FRAME OK:", frame.shape, "| FPS:", frame_counter)
+            frame_counter = 0
+            last_log_time = time.time()
+
+        # =========================
+        # 🎯 YOLO DETECTION
         # =========================
         try:
             detections = detector.detect(frame)
@@ -65,19 +78,17 @@ def run():
             print("DETECT ERROR:", e)
             detections = []
 
+        # 🧪 TEST DETECTIONS
+        # print("DETECTIONS:", len(detections))
+
         # =========================
-        # 🎯 BALL MANAGER
+        # 🎱 BALL MANAGER
         # =========================
         manager.update(detections)
 
         cue = manager.get_cue_ball()
         balls = manager.get_object_balls()
         pockets = manager.get_pockets()
-
-        # =========================
-        # 🧪 DEBUG PRINT
-        # =========================
-        # print("cue:", cue, "balls:", len(balls), "pockets:", len(pockets))
 
         # =========================
         # 🎯 AIM ENGINE
@@ -98,13 +109,16 @@ def run():
                 print("ENGINE ERROR:", e)
 
         # =========================
-        # 🖥️ UI UPDATE
+        # 🖥️ UPDATE QT UI
         # =========================
         app.processEvents()
-        time.sleep(0.01)
+
+        # small delay (stability)
+        time.sleep(0.005)
 
 
 if __name__ == "__main__":
+
     try:
         run()
 
