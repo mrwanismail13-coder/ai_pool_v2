@@ -15,120 +15,71 @@ def run():
 
     print("🚀 STARTING OVERLAY SYSTEM...")
 
-    # =========================
-    # QT APP
-    # =========================
     app = QApplication(sys.argv)
-
-    # =========================
-    # OVERLAY WINDOW
-    # =========================
     overlay = OverlayWindow()
 
-    # =========================
-    # CAMERA INIT
-    # =========================
-    try:
-        camera = dxcam.create(output_idx=0, output_color="BGR")
-        camera.start(target_fps=30)
-    except Exception as e:
-        print("❌ CAMERA ERROR:", e)
-        return
+    camera = dxcam.create(output_idx=0, output_color="BGR")
+    camera.start(target_fps=30)
 
-    # =========================
-    # CORE SYSTEMS
-    # =========================
     detector = BallDetector()
     manager = BallManager()
     engine = AimEngine()
-    table = TableDetector()
+    table_detector = TableDetector()
 
-    # =========================
-    # DEBUG
-    # =========================
     frame_counter = 0
-    last_time = time.time()
+    last_log_time = time.time()
 
-    # =========================
-    # MAIN LOOP
-    # =========================
     while True:
 
         frame = camera.get_latest_frame()
 
-        # -------------------------
-        # FRAME CHECK
-        # -------------------------
         if frame is None:
             app.processEvents()
-            time.sleep(0.01)
             continue
 
-        # -------------------------
-        # FPS DEBUG
-        # -------------------------
+        # =========================
+        # TABLE DETECTION 🔥
+        # =========================
+        table = table_detector.detect_table(frame)
+
         frame_counter += 1
-        if time.time() - last_time >= 1:
-            print("FPS:", frame_counter, "| FRAME:", frame.shape)
+        if time.time() - last_log_time >= 1:
+            print("FPS:", frame_counter)
             frame_counter = 0
-            last_time = time.time()
+            last_log_time = time.time()
 
-        # -------------------------
-        # TABLE DETECTION (AUTO)
-        # -------------------------
-        try:
-            table.detect_table(frame)
-        except Exception as e:
-            print("TABLE ERROR:", e)
-
-        # -------------------------
+        # =========================
         # YOLO DETECTION
-        # -------------------------
-        try:
-            detections = detector.detect(frame)
-        except Exception as e:
-            print("YOLO ERROR:", e)
-            detections = []
+        # =========================
+        detections = detector.detect(frame)
 
-        # -------------------------
-        # FILTER OUTSIDE TABLE
-        # -------------------------
-        try:
-            detections = table.filter_detections(detections)
-        except Exception as e:
-            print("FILTER ERROR:", e)
+        # =========================
+        # FILTER BY TABLE 🔥
+        # =========================
+        if table:
+            filtered = []
+            for d in detections:
+                if table_detector.is_inside(d["center"], table):
+                    filtered.append(d)
+            detections = filtered
 
-        # -------------------------
-        # BALL MANAGER
-        # -------------------------
         manager.update(detections)
 
         cue = manager.get_cue_ball()
         balls = manager.get_object_balls()
         pockets = manager.get_pockets()
 
-        # -------------------------
-        # AIM ENGINE
-        # -------------------------
         if cue and balls and pockets:
 
-            try:
-                result = engine.solve(
-                    cue_ball=cue,
-                    target_ball=balls[0],
-                    pockets=pockets,
-                    table_bounds=table.table_box
-                )
+            result = engine.solve(
+                cue_ball=cue,
+                target_ball=balls[0],
+                pockets=pockets
+            )
 
-                if result:
-                    overlay.set_data(result)
+            if result:
+                overlay.set_data(result)
 
-            except Exception as e:
-                print("ENGINE ERROR:", e)
-
-        # -------------------------
-        # UPDATE UI
-        # -------------------------
         app.processEvents()
         time.sleep(0.005)
 
