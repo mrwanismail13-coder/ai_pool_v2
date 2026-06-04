@@ -1,3 +1,4 @@
-from run_system import run
+from run_overlay import run_overlay
 
-run()
+if __name__ == "__main__":
+    run_overlay()
